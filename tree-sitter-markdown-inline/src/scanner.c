@@ -22,7 +22,8 @@ typedef enum {
     STRIKETHROUGH_CLOSE,
     LATEX_SPAN_START,
     LATEX_SPAN_CLOSE,
-    UNCLOSED_SPAN
+    UNCLOSED_SPAN,
+    CITATION_AT
 } TokenType;
 
 // Determines if a character is punctuation as defined by the markdown spec.
@@ -347,6 +348,41 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
     // Decide which tokens to consider based on the first non-whitespace
     // character
     switch (lexer->lookahead) {
+        case '@':
+            if (valid_symbols[CITATION_AT]) {
+                // 1. Check valid preceding context (already in your code)
+                if (valid_symbols[LAST_TOKEN_WHITESPACE] || valid_symbols[LAST_TOKEN_PUNCTUATION]) {
+            
+                    lexer->advance(lexer, false); // Move past '@'
+
+                    // 2. Lookahead: Check if this is "fig:" or "tbl:"
+                    // We use a small temporary buffer or nested checks
+                    if (lexer->lookahead == 'f') {
+                        lexer->advance(lexer, false);
+                        if (lexer->lookahead == 'i') {
+                            lexer->advance(lexer, false);
+                            if (lexer->lookahead == 'g') {
+                                lexer->advance(lexer, false);
+                                if (lexer->lookahead == ':') return false; // It's a crossref!
+                            }
+                        }
+                    } else if (lexer->lookahead == 't') {
+                        lexer->advance(lexer, false);
+                        if (lexer->lookahead == 'b') {
+                            lexer->advance(lexer, false);
+                            if (lexer->lookahead == 'l') {
+                                lexer->advance(lexer, false);
+                                if (lexer->lookahead == ':') return false; // It's a crossref!
+                            }
+                        }
+                    }
+
+                    // 3. If it wasn't fig: or tbl:, it's a valid citation start
+                    lexer->result_symbol = CITATION_AT;
+                    return true;
+                }
+            }
+        break;
         case '`':
             // A backtick could mark the beginning or ending of a code span or a
             // fenced code block.

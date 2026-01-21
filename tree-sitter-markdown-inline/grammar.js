@@ -17,6 +17,7 @@ const PRECEDENCE_LEVEL_HTML = 100;
 // https://github.github.com/gfm/#ascii-punctuation-character
 const PUNCTUATION_CHARACTERS_REGEX = '!-/:-@\\[-`\\{-~';
 
+const XREF_ID = /[A-Za-z0-9_]+(?:-[A-Za-z0-9_]+)*/;
 
 // !!!
 // Notice the call to `add_inline_rules` which generates some additional rules related to parsing
@@ -58,7 +59,9 @@ module.exports = grammar(add_inline_rules({
 
         // Token emmited when encountering opening delimiters for a leaf span
         // e.g. a code span, that does not have a matching closing span
-        $._unclosed_span
+        $._unclosed_span,
+
+        $._citation_at
     ],
     precedences: $ => [
         // [$._strong_emphasis_star, $._inline_element_no_star],
@@ -197,6 +200,29 @@ module.exports = grammar(add_inline_rules({
             $._word,
             common.punctuation_without($, ['[',']']),
             $._whitespace,
+        )),
+
+        citation: $ => seq(
+            alias($._citation_at, '@'), // Alias the hidden token to a literal or a name
+            alias(/[A-Za-z0-9_][A-Za-z0-9_\-\:\.]*/, $.citation_key)
+        ),
+
+        xref_kind: _ => choice('fig', 'tbl'),
+        xref_id: _ => token(XREF_ID),
+
+        crossref: $ => prec.dynamic(PRECEDENCE_LEVEL_LINK, seq(
+            '@',
+            field('kind', $.xref_kind),
+            ':',
+            field('id', $.xref_id),
+        )),
+
+        crossref_decl: $ => prec.dynamic(PRECEDENCE_LEVEL_LINK, seq(
+            '{', '#',
+            field('kind', $.xref_kind),
+            ':',
+            field('id', $.xref_id),
+            '}',
         )),
 
         // Images work exactly like links with a '!' added in front.
@@ -348,6 +374,9 @@ module.exports = grammar(add_inline_rules({
 
         _inline_base: $ => prec.right(repeat1(choice(
             $.image,
+            $.crossref,
+            $.crossref_decl,
+            $.citation,
             $._soft_line_break,
             $.backslash_escape,
             $.hard_line_break,
@@ -364,7 +393,10 @@ module.exports = grammar(add_inline_rules({
         ))),
         _text_base: $ => choice(
             $._word,
-            common.punctuation_without($, ['[', ']']),
+            common.punctuation_without($, ['[', ']', '{', '}', '@', '#', ':']),
+            prec(-1, '{'),
+            prec(-1, '}'),
+            '@', '#', ':',
             $._whitespace,
             '<!--',
             /<![A-Z]+/,

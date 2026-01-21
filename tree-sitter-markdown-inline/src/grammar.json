@@ -2147,6 +2147,123 @@
         ]
       }
     },
+    "citation": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_citation_at"
+          },
+          "named": false,
+          "value": "@"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "PATTERN",
+            "value": "[A-Za-z0-9_][A-Za-z0-9_\\-\\:\\.]*"
+          },
+          "named": true,
+          "value": "citation_key"
+        }
+      ]
+    },
+    "xref_kind": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "fig"
+        },
+        {
+          "type": "STRING",
+          "value": "tbl"
+        }
+      ]
+    },
+    "xref_id": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PATTERN",
+        "value": "[A-Za-z0-9_]+(?:-[A-Za-z0-9_]+)*"
+      }
+    },
+    "crossref": {
+      "type": "PREC_DYNAMIC",
+      "value": 10,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "@"
+          },
+          {
+            "type": "FIELD",
+            "name": "kind",
+            "content": {
+              "type": "SYMBOL",
+              "name": "xref_kind"
+            }
+          },
+          {
+            "type": "STRING",
+            "value": ":"
+          },
+          {
+            "type": "FIELD",
+            "name": "id",
+            "content": {
+              "type": "SYMBOL",
+              "name": "xref_id"
+            }
+          }
+        ]
+      }
+    },
+    "crossref_decl": {
+      "type": "PREC_DYNAMIC",
+      "value": 10,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "{"
+          },
+          {
+            "type": "STRING",
+            "value": "#"
+          },
+          {
+            "type": "FIELD",
+            "name": "kind",
+            "content": {
+              "type": "SYMBOL",
+              "name": "xref_kind"
+            }
+          },
+          {
+            "type": "STRING",
+            "value": ":"
+          },
+          {
+            "type": "FIELD",
+            "name": "id",
+            "content": {
+              "type": "SYMBOL",
+              "name": "xref_id"
+            }
+          },
+          {
+            "type": "STRING",
+            "value": "}"
+          }
+        ]
+      }
+    },
     "image": {
       "type": "CHOICE",
       "members": [
@@ -4537,6 +4654,18 @@
             },
             {
               "type": "SYMBOL",
+              "name": "crossref"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "crossref_decl"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "citation"
+            },
+            {
+              "type": "SYMBOL",
               "name": "_soft_line_break"
             },
             {
@@ -4585,8 +4714,8 @@
               "name": "_text_base"
             },
             {
-              "type": "CHOICE",
-              "members": []
+              "type": "SYMBOL",
+              "name": "tag"
             },
             {
               "type": "SYMBOL",
@@ -4616,10 +4745,6 @@
                 {
                   "type": "STRING",
                   "value": "\""
-                },
-                {
-                  "type": "STRING",
-                  "value": "#"
                 },
                 {
                   "type": "STRING",
@@ -4671,10 +4796,6 @@
                 },
                 {
                   "type": "STRING",
-                  "value": ":"
-                },
-                {
-                  "type": "STRING",
                   "value": ";"
                 },
                 {
@@ -4695,10 +4816,6 @@
                 },
                 {
                   "type": "STRING",
-                  "value": "@"
-                },
-                {
-                  "type": "STRING",
                   "value": "\\"
                 },
                 {
@@ -4715,15 +4832,7 @@
                 },
                 {
                   "type": "STRING",
-                  "value": "{"
-                },
-                {
-                  "type": "STRING",
                   "value": "|"
-                },
-                {
-                  "type": "STRING",
-                  "value": "}"
                 },
                 {
                   "type": "STRING",
@@ -4744,6 +4853,34 @@
               ]
             }
           ]
+        },
+        {
+          "type": "PREC",
+          "value": -1,
+          "content": {
+            "type": "STRING",
+            "value": "{"
+          }
+        },
+        {
+          "type": "PREC",
+          "value": -1,
+          "content": {
+            "type": "STRING",
+            "value": "}"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "@"
+        },
+        {
+          "type": "STRING",
+          "value": "#"
+        },
+        {
+          "type": "STRING",
+          "value": ":"
         },
         {
           "type": "SYMBOL",
@@ -4787,6 +4924,10 @@
           "name": "_unclosed_span"
         }
       ]
+    },
+    "tag": {
+      "type": "PATTERN",
+      "value": "#[0-9]*[a-zA-Z_\\-\\/][a-zA-Z_\\-\\/0-9]*"
     },
     "_inline_element": {
       "type": "CHOICE",
@@ -4897,6 +5038,10 @@
               ]
             }
           ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "wiki_link"
         }
       ]
     },
@@ -5012,6 +5157,10 @@
               ]
             }
           ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "wiki_link"
         }
       ]
     },
@@ -5127,6 +5276,10 @@
               ]
             }
           ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "wiki_link"
         }
       ]
     },
@@ -5242,6 +5395,10 @@
               ]
             }
           ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "wiki_link"
         }
       ]
     },
@@ -6261,6 +6418,10 @@
     {
       "type": "SYMBOL",
       "name": "_unclosed_span"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_citation_at"
     }
   ],
   "inline": [],
