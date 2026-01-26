@@ -93,42 +93,84 @@ static void deserialize(Scanner *s, const char *buffer, unsigned length) {
     }
 }
 
+static bool is_whitespace(int32_t chr) {
+    return chr == ' ' || chr == '\t' || chr == '\n' || chr == '\r';
+}
+
+// Updated parse_leaf_delimiter with padding logic
 static bool parse_leaf_delimiter(TSLexer *lexer, uint8_t *delimiter_length,
                                  const bool *valid_symbols,
                                  const char delimiter,
                                  const TokenType open_token,
-                                 const TokenType close_token) {
+                                 const TokenType close_token,
+                                 bool allow_padding) { // New parameter
     uint8_t level = 0;
     while (lexer->lookahead == delimiter) {
         lexer->advance(lexer, false);
         level++;
     }
-    lexer->mark_end(lexer);
+
+    // CLOSING DELIMITER LOGIC
     if (level == *delimiter_length && valid_symbols[close_token]) {
         *delimiter_length = 0;
         lexer->result_symbol = close_token;
         return true;
     }
+
+    // OPENING DELIMITER LOGIC
     if (valid_symbols[open_token]) {
-        // Parse ahead to check if there is a closing delimiter
+        // Rule: If padding is not allowed, the next char cannot be whitespace
+        if (!allow_padding && is_whitespace(lexer->lookahead)) {
+            return false;
+        }
+
+        // Rule: If padding is not allowed, the next char cannot be EOF
+        if (!allow_padding && lexer->eof(lexer)) {
+            return false;
+        }
+
+        // Parse ahead to check if there is a matching closing delimiter
+        lexer->mark_end(lexer);
+        
         size_t close_level = 0;
+        int32_t previous_char = 0; // To check preceding whitespace for closer
+
         while (!lexer->eof(lexer)) {
             if (lexer->lookahead == delimiter) {
-                close_level++;
-            } else {
-                if (close_level == level) {
-                    // Found a matching delimiter
-                    break;
-                }
+                // Potential closer found.
+                // Rule: If padding is not allowed, closer cannot be preceded by whitespace.
+                // We check 'previous_char' which holds the char before this sequence of delimiters.
+                bool preceded_by_whitespace = is_whitespace(previous_char);
+
+                // Count the delimiters
                 close_level = 0;
+                while (lexer->lookahead == delimiter) {
+                    close_level++;
+                    lexer->advance(lexer, false);
+                }
+
+                if (close_level == level) {
+                    // Length matches. Now check padding constraints.
+                    if (allow_padding || !preceded_by_whitespace) {
+                        // Found a valid matching delimiter
+                        *delimiter_length = level;
+                        lexer->result_symbol = open_token;
+                        return true;
+                    }
+                    // If we are here, we found delimiters of correct length, 
+                    // but they were invalid (e.g. preceded by space in inline math).
+                    // We treat them as content and continue searching.
+                }
+                
+                // If length didn't match or padding check failed, reset and continue.
+                previous_char = delimiter; // The last char we saw was the delimiter itself
+            } else {
+                previous_char = lexer->lookahead;
+                lexer->advance(lexer, false);
             }
-            lexer->advance(lexer, false);
         }
-        if (close_level == level) {
-            *delimiter_length = level;
-            lexer->result_symbol = open_token;
-            return true;
-        }
+        
+        // No matching delimiter found
         if (valid_symbols[UNCLOSED_SPAN]) {
             lexer->result_symbol = UNCLOSED_SPAN;
             return true;
@@ -139,16 +181,100 @@ static bool parse_leaf_delimiter(TSLexer *lexer, uint8_t *delimiter_length,
 
 static bool parse_backtick(Scanner *s, TSLexer *lexer,
                            const bool *valid_symbols) {
+    // Backticks (code spans) always allow padding: ` code ` is valid
     return parse_leaf_delimiter(lexer, &s->code_span_delimiter_length,
                                 valid_symbols, '`', CODE_SPAN_START,
-                                CODE_SPAN_CLOSE);
+                                CODE_SPAN_CLOSE, true);
 }
 
 static bool parse_dollar(Scanner *s, TSLexer *lexer,
                          const bool *valid_symbols) {
-    return parse_leaf_delimiter(lexer, &s->latex_span_delimiter_length,
-                                valid_symbols, '$', LATEX_SPAN_START,
-                                LATEX_SPAN_CLOSE);
+    // 1. Consume dollars to determine if this is $ (inline) or $$ (block)
+    // We need to peek first because parse_leaf_delimiter consumes them.
+    // However, parse_leaf_delimiter logic is built to consume.
+    // We can't know the length until we consume. 
+    // But we need to pass the 'allow_padding' flag *into* parse_leaf_delimiter.
+    
+    // Workaround: We manually check length first, then rewind? 
+    // Or better, we fork the logic inside parse_dollar before calling the helper, 
+    // but the helper does the scanning.
+    
+    // Let's modify the approach: Check the length inside parse_leaf_delimiter?
+    // No, that function is generic.
+    
+    // Strategy: Peek at the length first without consuming permanently (mark_end isn't enough).
+    // Actually, simply assume Inline ($) logic (strict) unless we see 2 chars.
+    // But we can't implement that easily with the single helper function as written.
+    
+    // Simplest fix: Re-implement parse_dollar logic explicitly to handle the $ vs $$ distinction.
+    
+    uint8_t level = 0;
+    // Lookahead to count delimiters
+    while (lexer->lookahead == '$') {
+        lexer->advance(lexer, false);
+        level++;
+    }
+    
+    // Decide based on length
+    // $ = Inline (No padding allowed)
+    // $$ = Block (Padding allowed)
+    bool allow_padding = level >= 2;
+    TokenType open_token = LATEX_SPAN_START;
+    TokenType close_token = LATEX_SPAN_CLOSE;
+
+    // CLOSING LOGIC
+    if (level == s->latex_span_delimiter_length && valid_symbols[close_token]) {
+        s->latex_span_delimiter_length = 0;
+        lexer->result_symbol = close_token;
+        return true;
+    }
+
+    // OPENING LOGIC
+    if (valid_symbols[open_token]) {
+        if (!allow_padding && (is_whitespace(lexer->lookahead) || lexer->eof(lexer))) {
+            return false;
+        }
+
+        lexer->mark_end(lexer);
+        
+        size_t close_level = 0;
+        int32_t previous_char = 0; 
+        
+        // Note: previous_char is technically the last '$' we consumed.
+        // But for the check inside the loop, we care about the char before the *closer*.
+        // So initializing to 0 is fine, provided we track inside the loop.
+
+        while (!lexer->eof(lexer)) {
+            if (lexer->lookahead == '$') {
+                bool preceded_by_whitespace = is_whitespace(previous_char);
+                
+                close_level = 0;
+                while (lexer->lookahead == '$') {
+                    close_level++;
+                    lexer->advance(lexer, false);
+                }
+
+                if (close_level == level) {
+                    if (allow_padding || !preceded_by_whitespace) {
+                        s->latex_span_delimiter_length = level;
+                        lexer->result_symbol = open_token;
+                        return true;
+                    }
+                }
+                previous_char = '$';
+            } else {
+                previous_char = lexer->lookahead;
+                lexer->advance(lexer, false);
+            }
+        }
+        
+        if (valid_symbols[UNCLOSED_SPAN]) {
+             lexer->result_symbol = UNCLOSED_SPAN;
+             return true;
+        }
+    }
+    
+    return false;
 }
 
 static bool parse_star(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
