@@ -18,7 +18,7 @@
 #define STATE_COUNT 925
 #define LARGE_STATE_COUNT 351
 #define SYMBOL_COUNT 203
-#define ALIAS_COUNT 4
+#define ALIAS_COUNT 5
 #define TOKEN_COUNT 90
 #define EXTERNAL_TOKEN_COUNT 47
 #define FIELD_COUNT 1
@@ -230,10 +230,11 @@ enum ts_symbol_identifiers {
   aux_sym_pipe_table_delimiter_cell_repeat1 = 200,
   aux_sym_pipe_table_row_repeat1 = 201,
   aux_sym_pipe_table_cell_repeat1 = 202,
-  alias_sym_inline = 203,
-  alias_sym_pipe_table_align_left = 204,
-  alias_sym_pipe_table_align_right = 205,
-  alias_sym_pipe_table_header = 206,
+  alias_sym_heading_marker_whitespace = 203,
+  alias_sym_inline = 204,
+  alias_sym_pipe_table_align_left = 205,
+  alias_sym_pipe_table_align_right = 206,
+  alias_sym_pipe_table_header = 207,
 };
 
 static const char * const ts_symbol_names[] = {
@@ -440,6 +441,7 @@ static const char * const ts_symbol_names[] = {
   [aux_sym_pipe_table_delimiter_cell_repeat1] = "pipe_table_delimiter_cell_repeat1",
   [aux_sym_pipe_table_row_repeat1] = "pipe_table_row_repeat1",
   [aux_sym_pipe_table_cell_repeat1] = "pipe_table_cell_repeat1",
+  [alias_sym_heading_marker_whitespace] = "heading_marker_whitespace",
   [alias_sym_inline] = "inline",
   [alias_sym_pipe_table_align_left] = "pipe_table_align_left",
   [alias_sym_pipe_table_align_right] = "pipe_table_align_right",
@@ -650,6 +652,7 @@ static const TSSymbol ts_symbol_map[] = {
   [aux_sym_pipe_table_delimiter_cell_repeat1] = aux_sym_pipe_table_delimiter_cell_repeat1,
   [aux_sym_pipe_table_row_repeat1] = aux_sym_pipe_table_row_repeat1,
   [aux_sym_pipe_table_cell_repeat1] = aux_sym_pipe_table_cell_repeat1,
+  [alias_sym_heading_marker_whitespace] = alias_sym_heading_marker_whitespace,
   [alias_sym_inline] = alias_sym_inline,
   [alias_sym_pipe_table_align_left] = alias_sym_pipe_table_align_left,
   [alias_sym_pipe_table_align_right] = alias_sym_pipe_table_align_right,
@@ -1469,6 +1472,10 @@ static const TSSymbolMetadata ts_symbol_metadata[] = {
     .visible = false,
     .named = false,
   },
+  [alias_sym_heading_marker_whitespace] = {
+    .visible = true,
+    .named = true,
+  },
   [alias_sym_inline] = {
     .visible = true,
     .named = true,
@@ -1530,6 +1537,7 @@ static const TSSymbol ts_alias_sequences[PRODUCTION_ID_COUNT][MAX_ALIAS_SEQUENCE
     [0] = alias_sym_inline,
   },
   [6] = {
+    [0] = alias_sym_heading_marker_whitespace,
     [1] = alias_sym_inline,
   },
   [8] = {

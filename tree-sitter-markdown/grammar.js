@@ -131,7 +131,7 @@ module.exports = grammar({
             $._newline
         )),
         _atx_heading_content: $ => prec(1, seq(
-            optional($._whitespace),
+            optional(alias($._whitespace, $.heading_marker_whitespace)),
             field('heading_content', alias($._line, $.inline))
         )),
 

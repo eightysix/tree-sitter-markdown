@@ -45,6 +45,10 @@
         {
           "type": "block_continuation",
           "named": true
+        },
+        {
+          "type": "heading_marker_whitespace",
+          "named": true
         }
       ]
     }
@@ -908,6 +912,10 @@
   },
   {
     "type": "fenced_code_block_delimiter",
+    "named": true
+  },
+  {
+    "type": "heading_marker_whitespace",
     "named": true
   },
   {

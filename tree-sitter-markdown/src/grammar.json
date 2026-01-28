@@ -2081,8 +2081,13 @@
             "type": "CHOICE",
             "members": [
               {
-                "type": "SYMBOL",
-                "name": "_whitespace"
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_whitespace"
+                },
+                "named": true,
+                "value": "heading_marker_whitespace"
               },
               {
                 "type": "BLANK"
